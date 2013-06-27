@@ -1,3 +1,4 @@
+require "uuidtools"
 require "sinatra/base"
 require "opener/webservice/version"
 
