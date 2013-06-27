@@ -105,7 +105,7 @@ module Opener
     #
     # @param [Array] callbacks The callback URLs to use.
     #
-    def process_async(callbacks)
+    def process_async(callbacks, error_callback)
       request_id = get_request_id
       output_url = callbacks.last
       Thread.new do
@@ -156,7 +156,7 @@ module Opener
       logger.info("Submitting results to #{url}")
 
       begin
-        process_callback(url, request_id, output, callbacks)
+        process_callback(url, request_id, output, callbacks, error_callback)
       rescue => error
         logger.error("Failed to submit the results: #{error.inspect}")
 
@@ -170,8 +170,8 @@ module Opener
     # @param [String] request_id
     # @param [Array] callbacks
     #
-    def process_callback(url, text, request_id, callbacks)
-      output = {:input => text, :request_id => request_id, :'callbacks[]' => callbacks}
+    def process_callback(url, text, request_id, callbacks, error_callback)
+      output = {:input => text, :request_id => request_id, :'callbacks[]' => callbacks, :error_callback => error_callback}
       HTTPClient.post(
         url,
         :body => filtered_params.merge(output)
