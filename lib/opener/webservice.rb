@@ -170,7 +170,7 @@ module Opener
     # @param [Array] callbacks
     #    
     def process_callback(url, text, request_id, callbacks)
-      output = {:input => text, :request_id, :'callbacks[]' => callbacks}
+      output = {:input => text, :request_id => request_id, :'callbacks[]' => callbacks}
       HTTPClient.post(
         url,
         :body => filtered_params.merge(output)
