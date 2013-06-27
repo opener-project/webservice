@@ -156,7 +156,7 @@ module Opener
       logger.info("Submitting results to #{url}")
 
       begin
-        process_callback(url, request_id, output, callbacks, error_callback)
+        process_callback(url, output, request_id, callbacks, error_callback)
       rescue => error
         logger.error("Failed to submit the results: #{error.inspect}")
 
