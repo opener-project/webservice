@@ -122,8 +122,6 @@ module Opener
     # @raise RunetimeError Raised when the tagging process failed.
     #
     def analyze(options)
-      require 'pry'; binding.pry
-
       processor             = text_processor.new(options)
       output, error, status = processor.run(options[:input])
       type = processor.respond_to?(:output_type) ? processor.output_type : :xml
