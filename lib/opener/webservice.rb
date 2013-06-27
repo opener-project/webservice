@@ -104,7 +104,7 @@ module Opener
     #
     # @param [Array] callbacks The callback URLs to use.
     #
-    def process_async(callbacks)
+    def process_async(callbacks, error_callback)
       Thread.new do
         analyze_async(filtered_params, callbacks, error_callback)
       end
