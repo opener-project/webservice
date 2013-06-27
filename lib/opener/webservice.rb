@@ -105,12 +105,14 @@ module Opener
     #
     # @param [Array] callbacks The callback URLs to use.
     #
-    def process_async(callbacks, error_callback)
+    def process_async(callbacks)
+      request_id = get_request_id
+      output_url = callbacks.last
       Thread.new do
-        analyze_async(filtered_params, callbacks, error_callback)
+        analyze_async(filtered_params, request_id, callbacks, error_callback)
       end
 
-      status(202)
+      erb :result, :locals => {:output_url => [output_url, request_id].join("/")}
     end
 
     ##
@@ -136,10 +138,11 @@ module Opener
     # Gets the NER of a KAF document and submits it to a callback URL.
     #
     # @param [String] text
+    # @param [String] request_id
     # @param [Array] callbacks
     # @param [String] error_callback
     #
-    def analyze_async(options, callbacks, error_callback = nil)
+    def analyze_async(options, request_id, callbacks, error_callback = nil)
       begin
         output,type = analyze(options)
       rescue => error
@@ -153,7 +156,7 @@ module Opener
       logger.info("Submitting results to #{url}")
 
       begin
-        process_callback(url, output, callbacks)
+        process_callback(url, request_id, output, callbacks)
       rescue => error
         logger.error("Failed to submit the results: #{error.inspect}")
 
@@ -164,10 +167,11 @@ module Opener
     ##
     # @param [String] url
     # @param [String] text
+    # @param [String] request_id
     # @param [Array] callbacks
     #
-    def process_callback(url, text, callbacks)
-      output = {:input => text, :'callbacks[]' => callbacks}
+    def process_callback(url, text, request_id, callbacks)
+      output = {:input => text, :request_id => request_id, :'callbacks[]' => callbacks}
       HTTPClient.post(
         url,
         :body => filtered_params.merge(output)
@@ -193,6 +197,10 @@ module Opener
       callbacks = input.compact.reject(&:empty?)
 
       return callbacks
+    end
+
+    def get_request_id
+      return params[:request_id] || UUIDTools::UUID.random_create
     end
 
   end
