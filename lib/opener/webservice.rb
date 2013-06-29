@@ -1,5 +1,6 @@
 require "uuidtools"
 require "sinatra/base"
+require "json"
 require "opener/webservice/version"
 
 module Opener
@@ -111,8 +112,9 @@ module Opener
       Thread.new do
         analyze_async(filtered_params, request_id, callbacks, error_callback)
       end
-
-      erb :result, :locals => {:output_url => [output_url, request_id].join("/")}
+      
+      content_type :json
+      {:request_id => request_id.to_s, :output_url => [output_url, request_id].join("/")}.to_json
     end
 
     ##
