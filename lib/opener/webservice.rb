@@ -52,6 +52,13 @@ module Opener
       end
     end
 
+    ##
+    # Specifies the text processor to use or returns it if no parameter is
+    # given.
+    #
+    # @param [Class] processor
+    # @return [Class]
+    #
     def self.text_processor(processor=nil)
       if processor.nil?
         return @processor
@@ -60,6 +67,11 @@ module Opener
       end
     end
 
+    ##
+    # Specifies what parameters are accepted.
+    #
+    # @param [Array] array The parameters to accept.
+    #
     def self.accepted_params(*array)
       if array.empty?
         return @accepted_params
@@ -68,16 +80,18 @@ module Opener
       end
     end
 
+    ##
+    # @return [Class]
+    #
     def text_processor
       self.class.text_processor
     end
 
+    ##
+    # @return [Array]
+    #
     def accepted_params
       self.class.accepted_params
-    end
-
-    def view_path
-      raise NotImplementedError
     end
 
     ##
@@ -112,9 +126,13 @@ module Opener
       Thread.new do
         analyze_async(filtered_params, request_id, callbacks, error_callback)
       end
-      
+
       content_type :json
-      {:request_id => request_id.to_s, :output_url => [output_url, request_id].join("/")}.to_json
+
+      {
+        :request_id => request_id.to_s,
+        :output_url => [output_url, request_id].join("/")
+      }.to_json
     end
 
     ##
@@ -129,7 +147,12 @@ module Opener
     def analyze(options)
       processor             = text_processor.new(options)
       output, error, status = processor.run(options[:input])
-      type = processor.respond_to?(:output_type) ? processor.output_type : :xml
+
+      if processor.respond_to?(:output_type)
+        type = processor.output_type
+      else
+        type = :xml
+      end
 
       raise(error) unless status.success?
 
@@ -146,7 +169,7 @@ module Opener
     #
     def analyze_async(options, request_id, callbacks, error_callback = nil)
       begin
-        output,type = analyze(options)
+        output, _ = analyze(options)
       rescue => error
         logger.error("Failed to process input: #{error.inspect}")
 
@@ -173,7 +196,13 @@ module Opener
     # @param [Array] callbacks
     #
     def process_callback(url, text, request_id, callbacks, error_callback)
-      output = {:input => text, :request_id => request_id, :'callbacks[]' => callbacks, :error_callback => error_callback}
+      output = {
+        :input          => text,
+        :request_id     => request_id,
+        :'callbacks[]'  => callbacks,
+        :error_callback => error_callback
+      }
+
       HTTPClient.post(
         url,
         :body => filtered_params.merge(output)
