@@ -199,9 +199,7 @@ module Opener
       # FIXME: this is a bit of a hack to prevent the webservice from clogging
       # Airbrake during the hackathon. For whatever reason somebody is posting
       # internal server errors from *somewhere*. Validation? What's that?
-      if input =~ /^internal server error/i
-        return
-      end
+      return if text =~ /^internal server error/i
 
       output = {
         :input          => text,
