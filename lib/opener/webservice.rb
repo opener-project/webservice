@@ -196,6 +196,13 @@ module Opener
     # @param [Array] callbacks
     #
     def process_callback(url, text, request_id, callbacks, error_callback)
+      # FIXME: this is a bit of a hack to prevent the webservice from clogging
+      # Airbrake during the hackathon. For whatever reason somebody is posting
+      # internal server errors from *somewhere*. Validation? What's that?
+      if input =~ /^internal server error/i
+        return
+      end
+
       output = {
         :input          => text,
         :request_id     => request_id,
