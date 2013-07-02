@@ -225,14 +225,17 @@ module Opener
     #
     def extract_callbacks(input)
       return [] if input.nil? || input.empty?
+
       callbacks = input.compact.reject(&:empty?)
 
       return callbacks
     end
 
+    ##
+    # @return [String]
+    #
     def get_request_id
       return params[:request_id] || UUIDTools::UUID.random_create
     end
-
   end
 end
