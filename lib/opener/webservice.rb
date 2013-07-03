@@ -5,7 +5,6 @@ require "opener/webservice/version"
 
 module Opener
   class Webservice < Sinatra::Base
-
     configure do
       enable :logging
     end
@@ -50,6 +49,23 @@ module Opener
       else
         process_async(callbacks, error_callback)
       end
+    end
+
+    ##
+    # @return [HTTPClient]
+    #
+    def self.http_client
+      return @http_client || new_http_client
+    end
+
+    ##
+    # @return [HTTPClient]
+    #
+    def self.new_http_client
+      client = HTTPClient.new
+      client.connect_timeout = 120
+
+      return client
     end
 
     ##
@@ -208,7 +224,7 @@ module Opener
         :error_callback => error_callback
       }
 
-      HTTPClient.post(
+      http_client.post_async(
         url,
         :body => filtered_params.merge(output)
       )
@@ -219,7 +235,7 @@ module Opener
     # @param [String] message
     #
     def submit_error(url, message)
-      HTTPClient.post(url, :body => {:error => message})
+      http_client.post_async(url, :body => {:error => message})
     end
 
     ##
@@ -241,6 +257,13 @@ module Opener
     #
     def get_request_id
       return params[:request_id] || UUIDTools::UUID.random_create
+    end
+
+    ##
+    # @see Opener::Webservice.http_client
+    #
+    def http_client
+      return self.class.http_client
     end
   end
 end
