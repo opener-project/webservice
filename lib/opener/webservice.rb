@@ -170,7 +170,7 @@ module Opener
         type = :xml
       end
 
-      raise(error) unless status.success?
+      raise(error) if !status.nil? && !status.success?
 
       return output, type
     end
