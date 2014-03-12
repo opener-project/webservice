@@ -127,7 +127,12 @@ module Opener
     def filtered_params
       options = params.select{|k,v| accepted_params.include?(k.to_sym)}
       cleaned = {}
-      options.each_pair{|k,v| cleaned[k.to_sym] = v}
+      options.each_pair do |k, v|
+        v = true  if v == "true"
+        v = false if v == "false"
+        cleaned[k.to_sym] = v
+      end
+
       return cleaned
     end
 
