@@ -2,9 +2,11 @@ require "uuidtools"
 require "sinatra/base"
 require "json"
 require "opener/webservice/version"
+require "opener/webservice/opt_parser"
 
 module Opener
   class Webservice < Sinatra::Base
+    
     configure do
       enable :logging
     end
