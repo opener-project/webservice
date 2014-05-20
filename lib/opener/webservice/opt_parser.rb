@@ -74,8 +74,16 @@ module Opener
 
           opts.separator "Authentication options:"
 
-          opts.on("-a", "--authentication AUTHENTICATION_ENDPOINT", "Endpoint for authenticating requests") do |v|
-            Sinatra::Application.set :authentication, v
+          opts.on("--authentication", "--authentication AUTHENTICATION_ENDPOINT", "Endpoint for authenticating requests") do |v|
+            options[:authentication] = v
+          end
+          
+          opts.on("--secret", "--secret SECRET_VARIABLE", "Accepted parameter variable for secret.") do |v|
+            options[:secret] = v
+          end
+          
+          opts.on("--token", "--secret TOKEN_VARIABLE", "Accepted parameter variable for token.") do |v|
+            options[:token] = v
           end
 
           opts.separator ""

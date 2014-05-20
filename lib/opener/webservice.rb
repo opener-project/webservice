@@ -6,14 +6,28 @@ require "opener/webservice/opt_parser"
 
 module Opener
   class Webservice < Sinatra::Base
-    
     configure do
       enable :logging
+      if ARGV && pos = ARGV.index("--")
+        ws_options = ARGV[pos..-1]
+      else
+        ws_options = []
+      end
+      options = OptParser.parse!(ws_options)
+
+      options.each do |k,v|
+        Sinatra::Application.set k.to_sym, v
+      end
     end
 
     configure :development do
       set :raise_errors, true
       set :dump_errors, true
+    end
+    
+    before %r{^((?!.css|.jpg|.png|.js|.ico).)+$} do
+      extract_params
+      authenticate! if Sinatra::Application.respond_to?(:authentication)
     end
 
     ##
@@ -96,6 +110,7 @@ module Opener
       else
         @accepted_params = array
       end
+      @accepted_params.concat([secret_symbol, token_symbol]) if Sinatra::Application.respond_to?(:authentication)
     end
 
     ##
@@ -223,14 +238,16 @@ module Opener
       # Airbrake during the hackathon. For whatever reason somebody is posting
       # internal server errors from *somewhere*. Validation? What's that?
       return if text =~ /^internal server error/i
-
+      
       output = {
         :input          => text,
         :request_id     => request_id,
         :'callbacks[]'  => callbacks,
         :error_callback => error_callback
       }
-
+      
+      extract_params
+      
       http_client.post_async(
         url,
         :body => filtered_params.merge(output)
@@ -271,6 +288,39 @@ module Opener
     #
     def http_client
       return self.class.http_client
+    end
+    
+    def authenticate!
+      credentials = {
+        secret_symbol => params[secret_symbol.to_s],
+        token_symbol => params[token_symbol.to_s]
+      }
+      response = http_client.get(Sinatra::Application.authentication, credentials)
+      halt response.body unless response.ok?
+    end
+    
+    def extract_params
+      if request.referrer
+        uri = URI.parse(request.referrer)
+        extracted = Rack::Utils.parse_nested_query(uri.query)
+        params.merge!(extracted)
+      end
+    end
+    
+    def self.secret_symbol
+      Sinatra::Application.respond_to?(:secret)? Sinatra::Application.secret.to_sym : :secret 
+    end
+    
+    def self.token_symbol
+      Sinatra::Application.respond_to?(:token)? Sinatra::Application.token.to_sym : :token 
+    end
+    
+    def secret_symbol
+      return self.class.secret_symbol
+    end
+    
+    def token_symbol
+      return self.class.token_symbol
     end
   end
 end
