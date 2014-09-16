@@ -23,4 +23,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "sinatra", "~> 1.4.3"
   spec.add_dependency "uuidtools"
   spec.add_dependency "json"
+  spec.add_dependency "opener-callback-handler"
 end

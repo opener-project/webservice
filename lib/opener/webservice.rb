@@ -3,6 +3,7 @@ require "sinatra/base"
 require "json"
 require "opener/webservice/version"
 require "opener/webservice/opt_parser"
+require 'opener/callback_handler'
 
 module Opener
   class Webservice < Sinatra::Base
@@ -66,12 +67,19 @@ module Opener
         process_async(callbacks, error_callback)
       end
     end
-
+    
     ##
     # @return [HTTPClient]
     #
     def self.http_client
       return @http_client || new_http_client
+    end
+    
+    ##
+    # @return [Opener::CallbackHandler]
+    #
+    def self.callback_handler
+      return @callback_handler || new_callback_handler
     end
 
     ##
@@ -82,6 +90,15 @@ module Opener
       client.connect_timeout = 120
 
       return client
+    end
+    
+    ##
+    # @return [Opener::CallbackHandler]
+    #
+    def self.new_callback_handler
+      handler = Opener::CallbackHandler.new
+
+      return handler
     end
 
     ##
@@ -248,7 +265,7 @@ module Opener
       
       extract_params
       
-      http_client.post_async(
+      callback_handler.post(
         url,
         :body => filtered_params.merge(output)
       )
@@ -259,7 +276,7 @@ module Opener
     # @param [String] message
     #
     def submit_error(url, message)
-      http_client.post_async(url, :body => {:error => message})
+      callback_handler.post(url, :body => {:error => message})
     end
 
     ##
@@ -288,6 +305,13 @@ module Opener
     #
     def http_client
       return self.class.http_client
+    end
+    
+    ##
+    # @see Opener::Webservice.callback_handler
+    #
+    def callback_handler
+      return self.class.callback_handler
     end
     
     def authenticate!
