@@ -52,12 +52,15 @@ module Opener
     #  when using the asynchronous setup.
     #
     post '/' do
-      if !params[:input] or params[:input].strip.empty?
+      input = get_input(params)
+      
+      if !input or input.strip.empty?
         logger.error('Failed to process the request: no input specified')
 
         halt(400, 'No input specified')
       end
-
+      
+      params[:input] = input
       callbacks = extract_callbacks(params[:callbacks])
       error_callback = params[:error_callback]
 
@@ -345,6 +348,11 @@ module Opener
     
     def token_symbol
       return self.class.token_symbol
+    end
+    
+    def get_input(params)
+      return params[:input] if params[:input]
+      return HTTPClient.new.get(params[:input_url]).body if params[:input_url]
     end
   end
 end
