@@ -25,7 +25,7 @@ module Opener
       set :raise_errors, true
       set :dump_errors, true
     end
-    
+
     before %r{^((?!.css|.jpg|.png|.js|.ico).)+$} do
       extract_params
       authenticate! if Sinatra::Application.respond_to?(:authentication)
@@ -53,13 +53,13 @@ module Opener
     #
     post '/' do
       input = get_input(params)
-      
+
       if !input or input.strip.empty?
         logger.error('Failed to process the request: no input specified')
 
         halt(400, 'No input specified')
       end
-      
+
       params[:input] = input
       callbacks = extract_callbacks(params[:callbacks])
       error_callback = params[:error_callback]
@@ -70,14 +70,14 @@ module Opener
         process_async(callbacks, error_callback)
       end
     end
-    
+
     ##
     # @return [HTTPClient]
     #
     def self.http_client
       return @http_client || new_http_client
     end
-    
+
     ##
     # @return [Opener::CallbackHandler]
     #
@@ -94,7 +94,7 @@ module Opener
 
       return client
     end
-    
+
     ##
     # @return [Opener::CallbackHandler]
     #
@@ -258,16 +258,16 @@ module Opener
       # Airbrake during the hackathon. For whatever reason somebody is posting
       # internal server errors from *somewhere*. Validation? What's that?
       return if text =~ /^internal server error/i
-      
+
       output = {
         :input          => text,
         :request_id     => request_id,
         :'callbacks[]'  => callbacks,
         :error_callback => error_callback
       }
-      
+
       extract_params
-      
+
       callback_handler.post(
         url,
         :body => filtered_params.merge(output)
@@ -309,14 +309,14 @@ module Opener
     def http_client
       return self.class.http_client
     end
-    
+
     ##
     # @see Opener::Webservice.callback_handler
     #
     def callback_handler
       return self.class.callback_handler
     end
-    
+
     def authenticate!
       credentials = {
         secret_symbol => params[secret_symbol.to_s],
@@ -325,7 +325,7 @@ module Opener
       response = http_client.get(Sinatra::Application.authentication, credentials)
       halt response.body unless response.ok?
     end
-    
+
     def extract_params
       if request.referrer
         uri = URI.parse(request.referrer)
@@ -333,23 +333,23 @@ module Opener
         params.merge!(extracted)
       end
     end
-    
+
     def self.secret_symbol
-      Sinatra::Application.respond_to?(:secret)? Sinatra::Application.secret.to_sym : :secret 
+      Sinatra::Application.respond_to?(:secret)? Sinatra::Application.secret.to_sym : :secret
     end
-    
+
     def self.token_symbol
-      Sinatra::Application.respond_to?(:token)? Sinatra::Application.token.to_sym : :token 
+      Sinatra::Application.respond_to?(:token)? Sinatra::Application.token.to_sym : :token
     end
-    
+
     def secret_symbol
       return self.class.secret_symbol
     end
-    
+
     def token_symbol
       return self.class.token_symbol
     end
-    
+
     def get_input(params)
       return params[:input] if params[:input]
       return HTTPClient.new.get(params[:input_url]).body if params[:input_url]
