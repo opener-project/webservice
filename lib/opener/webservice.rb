@@ -40,19 +40,23 @@ module Opener
     end
 
     ##
-    # Puts the text through the primary processor
+    # Puts the text through the primary processor. This route either accepts
+    # regular POST fields or a JSON payload.
     #
     # @param [Hash] params The POST parameters.
     #
     # @option params [String] :input the input to send to the processor
+    #
     # @option params [Array<String>] :callbacks A collection of callback URLs
     #  that act as a chain. The results are posted to the first URL which is
     #  then shifted of the list.
+    #
     # @option params [String] :error_callback Callback URL to send errors to
     #  when using the asynchronous setup.
     #
     post '/' do
-      input = get_input(params)
+      input_params = get_input_params
+      input        = get_input(input_params)
 
       if !input or input.strip.empty?
         logger.error('Failed to process the request: no input specified')
@@ -60,14 +64,15 @@ module Opener
         halt(400, 'No input specified')
       end
 
-      params[:input] = input
-      callbacks = extract_callbacks(params[:callbacks])
-      error_callback = params[:error_callback]
+      input_params[:input] = input
+
+      callbacks      = extract_callbacks(input_params[:callbacks])
+      error_callback = input_params[:error_callback]
 
       if callbacks.empty?
-        process_sync
+        process_sync(input_params)
       else
-        process_async(callbacks, error_callback)
+        process_async(input_params, callbacks, error_callback)
       end
     end
 
@@ -150,23 +155,29 @@ module Opener
     ##
     # Processes the request synchronously.
     #
-    def process_sync
-      output, type = analyze(filtered_params)
+    # @param [Hash] input_params
+    #
+    def process_sync(input_params)
+      output, type = analyze(filtered_params(input_params))
       content_type(type)
+
       body(output)
     end
 
     ##
     # Filter the params hash based on the accepted_params
     #
-    # @return [Hash] accepted params
+    # @param [Hash] input_params
+    # @return [Hash]
     #
-    def filtered_params
-      options = params.select{|k,v| accepted_params.include?(k.to_sym)}
+    def filtered_params(input_params)
+      options = input_params.select{|k,v| accepted_params.include?(k.to_sym)}
       cleaned = {}
-      options.each_pair do |k, v|
+
+      options.each do |k, v|
         v = true  if v == "true"
         v = false if v == "false"
+
         cleaned[k.to_sym] = v
       end
 
@@ -176,13 +187,21 @@ module Opener
     ##
     # Processes the request asynchronously.
     #
+    # @param [Hash] input_params
     # @param [Array] callbacks The callback URLs to use.
+    # @param [String] error_callback
     #
-    def process_async(callbacks, error_callback)
+    def process_async(input_params, callbacks, error_callback)
       request_id = get_request_id
       output_url = callbacks.last
+
       Thread.new do
-        analyze_async(filtered_params, request_id, callbacks, error_callback)
+        analyze_async(
+          filtered_params(input_params),
+          request_id,
+          callbacks,
+          error_callback
+        )
       end
 
       content_type :json
@@ -220,7 +239,7 @@ module Opener
     ##
     # Gets the NER of a KAF document and submits it to a callback URL.
     #
-    # @param [String] text
+    # @param [Hash] options
     # @param [String] request_id
     # @param [Array] callbacks
     # @param [String] error_callback
@@ -239,7 +258,7 @@ module Opener
       logger.info("Submitting results to #{url}")
 
       begin
-        process_callback(url, output, request_id, callbacks, error_callback)
+        process_callback(options, url, output, request_id, callbacks, error_callback)
       rescue => error
         logger.error("Failed to submit the results: #{error.inspect}")
 
@@ -248,30 +267,36 @@ module Opener
     end
 
     ##
+    # @param [Hash] options
     # @param [String] url
     # @param [String] text
     # @param [String] request_id
     # @param [Array] callbacks
     #
-    def process_callback(url, text, request_id, callbacks, error_callback)
-      # FIXME: this is a bit of a hack to prevent the webservice from clogging
-      # Airbrake during the hackathon. For whatever reason somebody is posting
-      # internal server errors from *somewhere*. Validation? What's that?
-      return if text =~ /^internal server error/i
-
-      output = {
-        :input          => text,
-        :request_id     => request_id,
-        :'callbacks[]'  => callbacks,
-        :error_callback => error_callback
-      }
+    def process_callback(options, url, text, request_id, callbacks, error_callback)
+      if request.content_type == 'application/json'
+        headers = {'Content-Type' => 'application/json'}
+        output  = JSON.dump(
+          filtered_params(options).merge(
+            :input          => text,
+            :request_id     => request_id,
+            :callbacks      => callbacks,
+            :error_callback => error_callback
+          )
+        )
+      else
+        headers = {}
+        output  = filtered_params(options).merge(
+          :input          => text,
+          :request_id     => request_id,
+          :'callbacks[]'  => callbacks,
+          :error_callback => error_callback
+        )
+      end
 
       extract_params
 
-      callback_handler.post(
-        url,
-        :body => filtered_params.merge(output)
-      )
+      callback_handler.post(url, :body => output, :header => headers)
     end
 
     ##
@@ -326,6 +351,26 @@ module Opener
       halt response.body unless response.ok?
     end
 
+    ##
+    # Returns a Hash containing the input parameters to use. If a JSON payload
+    # is submitted the parameters will be based on the payload.
+    #
+    # @return [Hash]
+    #
+    def get_input_params
+      input = {}
+
+      if request.content_type == 'application/json'
+        JSON.load(request.body).each do |key, value|
+          input[key.to_sym] = value
+        end
+      else
+        input = params
+      end
+
+      return input
+    end
+
     def extract_params
       if request.referrer
         uri = URI.parse(request.referrer)
@@ -350,9 +395,24 @@ module Opener
       return self.class.token_symbol
     end
 
+    ##
+    # Returns the KAF/text input as a String.
+    #
+    # @param [Hash] params
+    # @return [String]
+    #
     def get_input(params)
-      return params[:input] if params[:input]
-      return HTTPClient.new.get(params[:input_url]).body if params[:input_url]
+      input = nil
+
+      if params[:input]
+        input = params[:input]
+
+      elsif params[:input_url]
+        resp  = HTTPClient.get(params[:input_url], :follow_redirect => true)
+        input = resp.body if resp.ok?
+      end
+
+      return input
     end
   end
 end
