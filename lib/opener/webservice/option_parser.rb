@@ -39,6 +39,10 @@ module Opener
       def run!(argv = ARGV)
         puma_args = [rackup] + parser.parse(argv)
 
+        unless parser[:'disable-syslog']
+          ENV['ENABLE_SYSLOG'] = '1'
+        end
+
         # Puma on JRuby does some weird stuff with forking/exec. As a result of
         # this we *have to* update ARGV as otherwise running Puma as a daemon
         # does not work.
@@ -112,19 +116,27 @@ Puma Options:
           on :b=,
             :bucket=,
             'The S3 bucket to store output in',
-            :as => String
+            :as => String do |val|
+              ENV['OUTPUT_BUCKET'] = val
+            end
 
           on :authentication,
             'An authentication endpoint to use',
-            :as => String
+            :as => String do |val|
+              ENV['AUTHENTICATION_ENDPOINT'] = val
+            end
 
           on :secret,
             'Parameter name for the authentication secret',
-            :as => String
+            :as => String do |val|
+              ENV['AUTHENTICATION_SECRET'] = val
+            end
 
           on :token,
             'Parameter name for the authentication token',
-            :as => String
+            :as => String do |val|
+              ENV['AUTHENTICATION_TOKEN'] = val
+            end
 
           on :'disable-syslog', 'Disables Syslog logging (enabled by default)'
         end
