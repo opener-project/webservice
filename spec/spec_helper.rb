@@ -3,6 +3,8 @@ require 'rack/test'
 
 ENV['RACK_ENV'] = ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
+ENV['NEWRELIC_AGENT_ENABLED'] = 'false'
+
 require_relative '../lib/opener/webservice'
 
 RSpec.configure do |config|
