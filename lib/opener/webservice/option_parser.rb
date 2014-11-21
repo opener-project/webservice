@@ -159,6 +159,13 @@ Puma Options:
               GC::Profiler.enable
             end
 
+            if Configuration.syslog?
+              Core::Syslog.open(
+                ENV['APP_NAME'],
+                ::Syslog::LOG_CONS | ::Syslog::LOG_PID
+              )
+            end
+
             Configuration.configure_rollbar
 
             # Puma on JRuby does some weird stuff with forking/exec. As a result

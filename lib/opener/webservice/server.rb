@@ -159,6 +159,11 @@ module Opener
         request_id = options['request_id'] || SecureRandom.hex
         final_url  = options['callbacks'].last
 
+        Core::Syslog.info(
+          "Processing asynchronous request with final URL #{final_url}",
+          :request_id => request_id
+        )
+
         async { analyze_async(options, request_id) }
 
         content_type :json
@@ -236,6 +241,11 @@ module Opener
         new_payload.delete('input')
 
         if Configuration.output_bucket
+          Core::Syslog.info(
+            "Uploading output to s3://#{Configuration.output_bucket}",
+            :request_id => request_id
+          )
+
           uploader = Uploader.new
           object   = uploader.upload(request_id, output, options['metadata'])
 
@@ -243,6 +253,11 @@ module Opener
         else
           new_payload['input'] = output
         end
+
+        Core::Syslog.info(
+          "Submitting output to #{next_url}",
+          :request_id => request_id
+        )
 
         CallbackHandler.new.post(next_url, new_payload)
       end
