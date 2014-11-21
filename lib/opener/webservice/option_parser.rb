@@ -18,6 +18,18 @@ module Opener
       attr_reader :name, :rackup, :parser
 
       ##
+      # Mapping of environment variables and Slop options.
+      #
+      # @return [Hash]
+      #
+      ENV_OPTIONS = {
+        'OUTPUT_BUCKET'           => :bucket,
+        'AUTHENTICATION_TOKEN'    => :token,
+        'AUTHENTICATION_SECRET'   => :secret,
+        'AUTHENTICATION_ENDPOINT' => :authentication
+      }
+
+      ##
       # @param [String] name
       # @param [String] rackup
       #
@@ -37,18 +49,7 @@ module Opener
       # @param [Array] argv
       #
       def run!(argv = ARGV)
-        puma_args = [rackup] + parser.parse(argv)
-
-        unless parser[:'disable-syslog']
-          ENV['ENABLE_SYSLOG'] = '1'
-        end
-
-        # Puma on JRuby does some weird stuff with forking/exec. As a result of
-        # this we *have to* update ARGV as otherwise running Puma as a daemon
-        # does not work.
-        ARGV.replace(puma_args)
-
-        Puma::CLI.new(puma_args).run
+        parser.parse(argv)
       end
 
       ##
@@ -116,29 +117,57 @@ Puma Options:
           on :b=,
             :bucket=,
             'The S3 bucket to store output in',
-            :as => String do |val|
-              ENV['OUTPUT_BUCKET'] = val
-            end
+            :as => String
 
-          on :authentication,
+          on :authentication=,
             'An authentication endpoint to use',
-            :as => String do |val|
-              ENV['AUTHENTICATION_ENDPOINT'] = val
-            end
+            :as => String
 
-          on :secret,
+          on :secret=,
             'Parameter name for the authentication secret',
-            :as => String do |val|
-              ENV['AUTHENTICATION_SECRET'] = val
-            end
+            :as => String
 
-          on :token,
+          on :token=,
             'Parameter name for the authentication token',
-            :as => String do |val|
-              ENV['AUTHENTICATION_TOKEN'] = val
-            end
+            :as => String
 
           on :'disable-syslog', 'Disables Syslog logging (enabled by default)'
+
+          run do |opts, args|
+            puma_args = [outer.rackup] + args
+
+            ENV['APP_NAME'] = outer.name
+            ENV['APP_ROOT'] = File.expand_path('../../../../', __FILE__)
+            ENV['NRCONFIG'] = File.join(ENV['APP_ROOT'], 'config/newrelic.yml')
+
+            ENV_OPTIONS.each do |key, opt|
+              ENV[key] = opts[opt]
+            end
+
+            unless opts[:'disable-syslog']
+              ENV['ENABLE_SYSLOG'] = '1'
+            end
+
+            if !ENV['RAILS_ENV'] and ENV['RACK_ENV']
+              ENV['RAILS_ENV'] = ENV['RACK_ENV']
+            end
+
+            if ENV['NEWRELIC_TOKEN']
+              NewRelic::Control.instance.init_plugin
+
+              # Enable the GC profiler for New Relic.
+              GC::Profiler.enable
+            end
+
+            Configuration.configure_rollbar
+
+            # Puma on JRuby does some weird stuff with forking/exec. As a result
+            # of this we *have to* update ARGV as otherwise running Puma as a
+            # daemon does not work.
+            ARGV.replace(puma_args)
+
+            Puma::CLI.new(puma_args).run
+          end
         end
       end
     end # OptionParser

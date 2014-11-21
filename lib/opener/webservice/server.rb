@@ -55,6 +55,16 @@ module Opener
         set :dump_errors, false
       end
 
+      error do
+        Rollbar.report_exception(env['sinatra.error'])
+
+        halt(
+          500,
+          'An error occurred. A team of garden gnomes has been dispatched to ' \
+            'look into the problem.',
+        )
+      end
+
       # Require authentication for non static files if authentication is
       # enabled.
       before %r{^((?!.css|.jpg|.png|.js|.ico).)+$} do
