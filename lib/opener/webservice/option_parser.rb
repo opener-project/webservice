@@ -48,7 +48,7 @@ module Opener
       #
       # @param [Array] argv
       #
-      def run!(argv = ARGV)
+      def run(argv = ARGV)
         parser.parse(argv)
       end
 

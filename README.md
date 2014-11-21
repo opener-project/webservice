@@ -20,7 +20,7 @@ Create an executable file `bin/<component>-server`, for example
       File.expand_path('../../config.ru', __FILE__)
     )
 
-    parser.run!
+    parser.run
 
 Replace `<component>` with the name of the component. For example, for the
 language identifier this would result in the following:
@@ -34,7 +34,7 @@ language identifier this would result in the following:
       File.expand_path('../../config.ru', __FILE__)
     )
 
-    parser.run!
+    parser.run
 
 Next, create a `config.ru` file in the root directory of the component. It
 should have the following content:
