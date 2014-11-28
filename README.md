@@ -93,6 +93,8 @@ receives the following parameters:
 
 * A supported Ruby version (see below)
 * Amazon S3 (only when one wants to store ouput in S3)
+* libarchive (for running the tests and such), on Debian/Ubuntu based systems
+  this can be installed using `sudo apt-get install libarchive-dev`
 
 The following Ruby versions are supported:
 
