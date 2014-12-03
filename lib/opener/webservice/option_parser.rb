@@ -114,8 +114,7 @@ Puma Options:
             abort
           end
 
-          on :b=,
-            :bucket=,
+          on :bucket=,
             'The S3 bucket to store output in',
             :as => String
 
