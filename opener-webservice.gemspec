@@ -18,7 +18,6 @@ Gem::Specification.new do |spec|
   ]).select { |file| File.file?(file) }
 
   spec.add_dependency 'sinatra', '~> 1.4.3'
-  spec.add_dependency 'uuidtools'
   spec.add_dependency 'json'
   spec.add_dependency 'opener-callback-handler', '~> 1.0'
   spec.add_dependency 'httpclient', ['~> 2.0', '>= 2.5.3.3']
