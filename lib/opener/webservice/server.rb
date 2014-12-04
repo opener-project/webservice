@@ -56,7 +56,7 @@ module Opener
       end
 
       error do
-        Rollbar.report_exception(env['sinatra.error'])
+        Rollbar.error(env['sinatra.error'])
 
         halt(
           500,
