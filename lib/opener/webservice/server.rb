@@ -56,7 +56,12 @@ module Opener
       end
 
       error do
-        Rollbar.error(env['sinatra.error'])
+        Rollbar.error(
+          env['sinatra.error'],
+          :parameters => Transaction.current.parameters
+        )
+
+        Transaction.reset_current
 
         halt(
           500,
@@ -145,6 +150,8 @@ module Opener
 
         content_type(ctype)
 
+        Transaction.reset_current
+
         return output
       end
 
@@ -182,6 +189,8 @@ module Opener
       # @return [Array]
       #
       def analyze(options)
+        add_transaction_parameters(options)
+
         comp_options = InputSanitizer.new.whitelist_options(
           options,
           self.class.accepted_params
@@ -260,6 +269,22 @@ module Opener
         )
 
         CallbackHandler.new.post(next_url, new_payload)
+      end
+
+      ##
+      # @param [Hash] options
+      #
+      def add_transaction_parameters(options)
+        # If raw input is given we'll trim it so the payload isn't too large for
+        # Rollbar/New Relic. This uses Hash#merge so we don't modify the
+        # original options variable.
+        if options['input']
+          options = options.merge(
+            'input' => options['input'].byteslice(0, 256)
+          )
+        end
+
+        Transaction.current.add_parameters(options)
       end
 
       ##

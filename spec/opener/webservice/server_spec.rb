@@ -21,6 +21,10 @@ describe Opener::Webservice::Server, :type => :request do
     @server = described_class.new!
   end
 
+  after do
+    Opener::Webservice::Transaction.reset_current
+  end
+
   context 'synchronous requests' do
     example 'require the "input" or "input_url" field to be set' do
       post('/').status.should == 400
@@ -147,6 +151,24 @@ describe Opener::Webservice::Server, :type => :request do
 
     example 'return the processor output' do
       @server.analyze('input' => 'Hello world')[0].should =~ /Hello world/
+    end
+
+    example 'store input parameters in the current transaction' do
+      params = {'input' => 'Hello world'}
+
+      @server.analyze(params)
+
+      Opener::Webservice::Transaction.current.parameters.should == params
+    end
+
+    example 'include only up to 256 bytes of raw input in the transaction' do
+      params = {'input' => 'a' * 400}
+
+      @server.analyze(params)
+
+      transaction = Opener::Webservice::Transaction.current
+
+      transaction.parameters['input'].length.should == 256
     end
   end
 

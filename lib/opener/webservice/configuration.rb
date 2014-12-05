@@ -69,6 +69,15 @@ module Opener
       end
 
       ##
+      # Returns `true` if New Relic monitoring should be enabled.
+      #
+      # @return [TrueClass|FalseClass]
+      #
+      def self.newrelic?
+        return !!ENV['NEWRELIC_TOKEN']
+      end
+
+      ##
       # Configures Rollbar.
       #
       def self.configure_rollbar
