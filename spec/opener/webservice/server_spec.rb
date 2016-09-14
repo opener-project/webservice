@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'aws-sdk-v1'
 
 describe Opener::Webservice::Server, :type => :request do
   before do
@@ -174,7 +175,7 @@ describe Opener::Webservice::Server, :type => :request do
 
   context '#analyze_async' do
     before do
-      @input = {'input' => 'Hello world', 'error_callback' => 'foo'}
+      @input = {'input' => 'Hello world', 'error_callback' => 'http://foo'}
     end
 
     example 'analyze the input and submit the output to a callback' do
@@ -187,7 +188,7 @@ describe Opener::Webservice::Server, :type => :request do
     example 'submit errors to the error callback if present' do
       Opener::Webservice::ErrorHandler.any_instance
         .should_receive(:submit)
-        .with(an_instance_of(StandardError), '123')
+        .with(an_instance_of(StandardError), '123', 'http://foo')
 
       @server.stub(:analyze).and_raise(StandardError)
 
