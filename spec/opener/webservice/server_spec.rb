@@ -236,7 +236,7 @@ describe Opener::Webservice::Server, :type => :request do
         'input_url'  => 'http://s3-example'
       }
 
-      s3_object = AWS::S3::S3Object.new('foo', 'bar')
+      s3_object = Aws::S3::Object.new('foo', 'bar')
 
       s3_object.should_receive(:url_for)
         .and_return(new_payload['input_url'])

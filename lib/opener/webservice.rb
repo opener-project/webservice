@@ -1,6 +1,7 @@
 require 'securerandom'
 require 'json'
 
+require 'aws-sdk'
 require 'puma/cli'
 require 'slop'
 require 'sinatra/base'
