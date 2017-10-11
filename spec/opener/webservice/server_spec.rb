@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'aws-sdk-v1'
+require 'aws-sdk'
 
 describe Opener::Webservice::Server, :type => :request do
   before do
