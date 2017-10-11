@@ -6,6 +6,8 @@ script: bundle exec rake
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libarchive-dev
+  - gem update --system
+  - gem install bundler
 
 rvm:
   - 2.1
@@ -17,8 +19,6 @@ notifications:
 
     on_success: change
     on_failure: change
-
-cache: bundler
 
 branches:
   only:

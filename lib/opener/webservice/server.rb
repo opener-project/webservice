@@ -223,7 +223,7 @@ module Opener
       # Submit the error to the error callback, re-raise so Rollbar can also
       # report it.
       rescue Exception => error
-        ErrorHandler.new.submit(error, request_id) if options['error_callback']
+        ErrorHandler.new.submit(error, request_id, options['error_callback']) if options['error_callback']
 
         raise error
       end
