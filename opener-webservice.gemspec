@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'aws-sdk', '~> 2.0'
 
   spec.add_dependency 'newrelic_rpm', '~> 3.0'
-  spec.add_dependency 'rollbar', '~> 1.0'
+  spec.add_dependency 'rollbar', '~> 3.0'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
   spec.add_development_dependency 'rake'
